@@ -1,0 +1,15 @@
+[project]
+name = "pdf-anonymizer"
+version = "0.4.0"
+description = "Anonymize PDFs using local Ollama LLM"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pdfplumber>=0.10.0",
+    "httpx>=0.26.0",
+    "pypdf>=4.0.0",
+]
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"

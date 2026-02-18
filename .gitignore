@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Project - ignore PDFs and outputs, keep structure
+input/*
+!input/.gitkeep
+output/*
+!output/.gitkeep
+
+# Project data
+archive/
+nul
+
+# OS
+.DS_Store
