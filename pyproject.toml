@@ -1,7 +1,7 @@
 [project]
-name = "pdf-anonymizer"
+name = "corporate-pdf-toolkit"
 version = "0.4.0"
-description = "Anonymize PDFs using local Ollama LLM"
+description = "CLI tools for corporate PDF processing: text extraction to Markdown and anonymization via local Ollama LLM"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

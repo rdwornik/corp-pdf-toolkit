@@ -1,11 +1,11 @@
-# PDF Anonymizer
+# Corporate PDF Toolkit
 
 CLI tools for processing PDFs: anonymization via local Ollama LLMs, and instant text extraction to Markdown.
 
 ## Structure
 
 ```
-pdf-anonymizer/
+corporate-pdf-toolkit/
 ├── input/                    # Drop PDFs here
 ├── output/                   # Output .md files
 ├── pdf_utils.py              # Shared utilities (TOC, extraction, selection)
