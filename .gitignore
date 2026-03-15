@@ -23,5 +23,8 @@ output/*
 archive/
 nul
 
+# Claude Code
+.claude/
+
 # OS
 .DS_Store
