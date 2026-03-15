@@ -1,205 +1,105 @@
-# Corporate PDF Toolkit
+# CLAUDE.md -- corporate-pdf-toolkit
 
-CLI tools for processing PDFs: anonymization via local Ollama LLMs, and instant text extraction to Markdown.
+## What this repo does
 
-## Structure
+CLI tools for processing corporate PDFs: instant text extraction to Markdown (pdf2md.py) and anonymization via local Ollama LLMs (anonymize.py). All processing happens locally -- no data leaves the machine.
 
-```
-corporate-pdf-toolkit/
-├── input/                    # Drop PDFs here
-├── output/                   # Output .md files
-├── pdf_utils.py              # Shared utilities (TOC, extraction, selection)
-├── anonymize.py              # Anonymize PDFs via Ollama LLM
-├── pdf2md.py                 # Extract PDF text to Markdown (no LLM)
-├── pyproject.toml
-├── CLAUDE.md
-└── README.md
-```
-
-## Usage
-
-### pdf2md.py — PDF to Markdown (no LLM)
-
-Fast text extraction for feeding into AI tools as context.
+## Quick start
 
 ```bash
-# Extract all PDFs in input/
-python pdf2md.py
-
-# Extract specific file
-python pdf2md.py document.pdf
-
-# Show chapters / PDF info
-python pdf2md.py doc.pdf --toc
-python pdf2md.py doc.pdf --info
-
-# Extract specific chapters or pages
-python pdf2md.py doc.pdf --chapters 1-4,8-10
-python pdf2md.py doc.pdf --pages 1-50,80-100
-```
-
-### anonymize.py — Anonymize via Ollama
-
-```bash
-# Setup
+# Install dependencies
 pip install pdfplumber httpx pypdf
 
-# Process all PDFs in input/
-python anonymize.py
+# Extract PDF to Markdown (no LLM needed)
+python pdf2md.py document.pdf
 
-# Process specific file
+# Anonymize a PDF (requires Ollama running)
+ollama serve
 python anonymize.py document.pdf
-
-# Show chapters (default depth=2)
-python anonymize.py doc.pdf --toc
-python anonymize.py doc.pdf --toc-depth 1   # Only main chapters
-python anonymize.py doc.pdf --toc-depth 3   # More subsections
-
-# Process by index (supports ranges)
-python anonymize.py doc.pdf --chapters 1-4        # Chapters 1,2,3,4
-python anonymize.py doc.pdf --chapters 1-4,8-10   # Multiple ranges
-python anonymize.py doc.pdf --chapters 1,3,5-8    # Mix single and ranges
-
-# Process specific pages
-python anonymize.py doc.pdf --pages 1-50,80-100
-
-# PDF info
-python anonymize.py doc.pdf --info
-
-# Use different model
-python anonymize.py --model mistral
 ```
 
-**--toc output:**
-```
-Table of Contents: document.pdf
-[1] 1. General (pages 8-9)
-[2] 2. Project topics (pages 13-17)
-[3] 3. Architecture (pages 44-96)
-[4]     3.1 System landscape (pages 45-49)
-[5]     3.2 Integration (pages 50-54)
-[6] 4. Requirements (pages 122-129)
+## Architecture
 
-Use: --chapters 1-3,5-6 to select by index
-```
+Flat layout, no `src/` directory. Three Python modules at root:
 
-## Requirements
+| File | Purpose |
+|------|---------|
+| `pdf_utils.py` | Shared utilities: TOC parsing, page/chapter selection, text extraction, file resolution |
+| `pdf2md.py` | PDF-to-Markdown extractor (no LLM). Argparse CLI |
+| `anonymize.py` | PDF anonymizer via Ollama LLM. Async with parallel chunk processing. Argparse CLI |
 
-- Python 3.10+
-- `pdfplumber`, `pypdf` (both scripts)
-- `httpx` (anonymize.py only)
-- Ollama running locally for anonymize.py (`ollama serve`)
-- Model: qwen2.5:7b (default)
+**Data flow:**
+- `input/` -- drop PDFs here
+- `output/` -- generated `.md` files
+- `input/archive/` -- processed PDFs are moved here after completion
 
-## Output Format
+**Shared constants** in `pdf_utils.py`: `INPUT_DIR`, `OUTPUT_DIR`, `ARCHIVE_DIR`, `SCRIPT_DIR`.
 
-### pdf2md.py
+**TOC detection** (priority order):
+1. PDF bookmarks/outlines via pypdf
+2. TOC page parsing ("title.....page" dot-leader patterns)
 
-`input/document.pdf` → `output/document.md`
+## Dev standards
 
-```markdown
----
-source: "document.pdf"
-pages: 25
-extracted: 2026-01-22T14:08:39
-pages_selected: "1-50"
----
+- Python 3.10+, Windows-first (PowerShell / Git Bash)
+- `pyproject.toml` as single source of truth for dependencies
+- `ruff` for linting and formatting
+- No `src/` layout -- scripts at root level
+- argparse for CLI (not Click)
+- No logging framework -- uses print statements
+- async/httpx for Ollama communication (anonymize.py)
+- pdfplumber for text extraction, pypdf for outline/bookmark parsing
 
-Full text content...
-```
-
-### anonymize.py
-
-`input/document.pdf` → `output/document_anonymized.md`
-
-```markdown
----
-source: "document.pdf"
-pages: 25
-model: qwen2.5:7b
-processed: 2026-01-22T14:08:39
-placeholders:
-  COMPANY: company/organization name
-  PERSON: person name
----
-
-Anonymized text content...
-```
-
-Only placeholders actually used are listed in frontmatter.
-
-## Placeholders
-
-| Placeholder | Replaces |
-|-------------|----------|
-| [COMPANY] | Company names |
-| [PRODUCT] | Product/solution names |
-| [PERSON] | Person names |
-| [PRICE] | Prices/costs |
-| [DATE] | Specific dates |
-| [URL] | URLs/domains |
-| [EMAIL] | Email addresses |
-| [LOCATION] | Addresses/locations |
-
-## Debugging
+## Key commands
 
 ```bash
-# Check Ollama
-curl http://localhost:11434/api/tags
+# PDF to Markdown
+python pdf2md.py                          # All PDFs in input/
+python pdf2md.py doc.pdf                  # Specific file
+python pdf2md.py doc.pdf --toc            # Show table of contents
+python pdf2md.py doc.pdf --toc-depth 3    # Deeper TOC levels
+python pdf2md.py doc.pdf --chapters 1-4   # Extract specific chapters
+python pdf2md.py doc.pdf --pages 1-50     # Extract specific pages
+python pdf2md.py doc.pdf --info           # Show PDF metadata
 
-# Check available models
-ollama list
+# Anonymize via Ollama
+python anonymize.py                       # All PDFs in input/
+python anonymize.py doc.pdf               # Specific file
+python anonymize.py --model mistral       # Different model
+python anonymize.py --chunk-size 4000     # Larger chunks
+python anonymize.py --parallel 4          # More concurrency
+
+# Code quality
+python -m ruff check *.py --fix
+python -m ruff format *.py
 ```
 
-## Ollama Configuration
+## Test suite
 
-Set these environment variables before running `ollama serve`:
+No tests exist yet. All three modules (`pdf_utils.py`, `pdf2md.py`, `anonymize.py`) have zero test coverage.
 
-```bash
-# Linux/macOS
-export OLLAMA_NUM_THREADS=14
-export OLLAMA_KEEP_ALIVE=60m
-ollama serve
+## Dependencies
 
-# Windows PowerShell
-$env:OLLAMA_NUM_THREADS=14
-$env:OLLAMA_KEEP_ALIVE="60m"
-ollama serve
-```
+| Package | Used by | Purpose |
+|---------|---------|---------|
+| `pdfplumber` | Both | PDF text extraction |
+| `pypdf` | Both | PDF outline/bookmark reading |
+| `httpx` | anonymize.py | Async HTTP client for Ollama API |
 
-## Options
+Ollama must be running locally (`ollama serve`) for anonymize.py. Default model: `qwen2.5:7b`.
 
-Shared options (both scripts):
+## Known issues
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--toc` | - | Show table of contents |
-| `--toc-depth` | 2 | Depth: 1=main, 2=+sub, 3=+sub-sub |
-| `--chapters` | all | Indices (e.g., `1-4` or `1-4,8-10`) |
-| `--pages` | all | Pages (e.g., `1-50` or `1-20,50-60`) |
-| `--info` | - | Show PDF info (no processing) |
+- **No test coverage** -- all modules untested
+- **No type checking** -- mypy not configured or installed
+- **Archive behavior** -- both scripts move processed PDFs to `input/archive/` after processing, which could surprise users
+- **No error recovery** -- if Ollama fails mid-processing, partial results may be lost
+- **Flat layout** -- no package structure, scripts import each other via relative imports at root level
 
-anonymize.py only:
+## Related repos
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `--chunk-size` | 3500 | Characters per chunk |
-| `--parallel` | 3 | Concurrent chunks |
-| `--model` | qwen2.5:7b | Ollama model |
-
-## Performance Tuning
-
-Optimized for CPU with 32GB RAM (anonymize.py).
-
-```bash
-# Faster (larger chunks, more parallel)
-python anonymize.py --chunk-size 4000 --parallel 4
-
-# Memory constrained
-python anonymize.py --chunk-size 2000 --parallel 2
-```
-
-**How it works:**
-- Model preloaded with `keep_alive=60m` at startup
-- 3 chunks processed in parallel (Ollama queues requests)
-- Progress: `Chunk 5-7/20 processing... (4 done)`
+- corp-by-os -- orchestrator
+- corp-os-meta -- shared schemas
+- corp-knowledge-extractor -- extraction engine
+- corp-rfp-agent -- RFP automation
+- ai-council -- multi-model debate
