@@ -9,6 +9,7 @@ Optimized for CPU with 32GB RAM:
 
 import argparse
 import asyncio
+import shutil
 from datetime import datetime
 from pathlib import Path
 
@@ -16,10 +17,19 @@ import httpx
 import pdfplumber
 
 from pdf_utils import (
-    INPUT_DIR, OUTPUT_DIR,
-    get_pdf_info, get_toc, filter_toc_by_depth, print_toc, print_info,
-    parse_page_ranges, parse_chapter_selection, format_page_ranges,
-    extract_pdf, get_pdf_files,
+    INPUT_DIR,
+    OUTPUT_DIR,
+    ARCHIVE_DIR,
+    get_pdf_info,
+    get_toc,
+    filter_toc_by_depth,
+    print_toc,
+    print_info,
+    parse_page_ranges,
+    parse_chapter_selection,
+    format_page_ranges,
+    extract_pdf,
+    get_pdf_files,
 )
 
 # Defaults
@@ -153,12 +163,18 @@ ANONYMIZED TEXT:"""
         return chunk_idx, response.json()["response"]
 
 
-async def process_pdf(pdf_path: Path, model: str, chunk_size: int, parallel: int, pages_str: str | None = None) -> dict:
+async def process_pdf(
+    pdf_path: Path,
+    model: str,
+    chunk_size: int,
+    parallel: int,
+    pages_str: str | None = None,
+) -> dict:
     """Process a single PDF file with parallel chunk processing."""
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Processing: {pdf_path.name}")
     print(f"Model: {model} | Chunk size: {chunk_size} | Parallel: {parallel}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     # Get total page count first for range parsing
     with pdfplumber.open(pdf_path) as pdf:
@@ -213,12 +229,19 @@ async def process_pdf(pdf_path: Path, model: str, chunk_size: int, parallel: int
 
                 # Show which chunks are in progress
                 in_progress = [
-                    i + 1 for i in range(total_chunks)
+                    i + 1
+                    for i in range(total_chunks)
                     if i not in results and i < completed + parallel
                 ]
                 if in_progress:
-                    progress_str = f"{in_progress[0]}-{in_progress[-1]}" if len(in_progress) > 1 else str(in_progress[0])
-                    print(f"  Chunk {progress_str}/{total_chunks} processing... ({completed} done)")
+                    progress_str = (
+                        f"{in_progress[0]}-{in_progress[-1]}"
+                        if len(in_progress) > 1
+                        else str(in_progress[0])
+                    )
+                    print(
+                        f"  Chunk {progress_str}/{total_chunks} processing... ({completed} done)"
+                    )
                 else:
                     print(f"  Completed {completed}/{total_chunks}")
 
@@ -235,9 +258,7 @@ async def process_pdf(pdf_path: Path, model: str, chunk_size: int, parallel: int
     anonymized_text = "\n\n".join(anonymized_chunks)
 
     # Detect which placeholders were actually used
-    used_placeholders = {
-        k: v for k, v in PLACEHOLDERS.items() if k in anonymized_text
-    }
+    used_placeholders = {k: v for k, v in PLACEHOLDERS.items() if k in anonymized_text}
 
     return {
         "source": pdf_path.name,
@@ -300,13 +321,39 @@ Examples:
     )
     parser.add_argument("file", nargs="?", help="Specific PDF file to process")
     parser.add_argument("--pages", help="Page ranges (e.g., '1-50' or '1-20,50-60')")
-    parser.add_argument("--chapters", help="Chapter indices (e.g., '1-4' or '1-4,8-10' or '1,3,5-8')")
+    parser.add_argument(
+        "--chapters", help="Chapter indices (e.g., '1-4' or '1-4,8-10' or '1,3,5-8')"
+    )
     parser.add_argument("--toc", action="store_true", help="Show table of contents")
-    parser.add_argument("--toc-depth", type=int, default=2, help="TOC depth: 1=main, 2=+subsections (default: 2)")
-    parser.add_argument("--info", action="store_true", help="Show PDF info without processing")
-    parser.add_argument("--model", "-m", default=DEFAULT_MODEL, help=f"Ollama model (default: {DEFAULT_MODEL})")
-    parser.add_argument("--chunk-size", "-c", type=int, default=CHUNK_SIZE, help=f"Characters per chunk (default: {CHUNK_SIZE})")
-    parser.add_argument("--parallel", "-p", type=int, default=PARALLEL_CHUNKS, help=f"Parallel chunks (default: {PARALLEL_CHUNKS})")
+    parser.add_argument(
+        "--toc-depth",
+        type=int,
+        default=2,
+        help="TOC depth: 1=main, 2=+subsections (default: 2)",
+    )
+    parser.add_argument(
+        "--info", action="store_true", help="Show PDF info without processing"
+    )
+    parser.add_argument(
+        "--model",
+        "-m",
+        default=DEFAULT_MODEL,
+        help=f"Ollama model (default: {DEFAULT_MODEL})",
+    )
+    parser.add_argument(
+        "--chunk-size",
+        "-c",
+        type=int,
+        default=CHUNK_SIZE,
+        help=f"Characters per chunk (default: {CHUNK_SIZE})",
+    )
+    parser.add_argument(
+        "--parallel",
+        "-p",
+        type=int,
+        default=PARALLEL_CHUNKS,
+        help=f"Parallel chunks (default: {PARALLEL_CHUNKS})",
+    )
     args = parser.parse_args()
 
     # Ensure directories exist
@@ -365,7 +412,9 @@ Examples:
             response.raise_for_status()
             models = [m["name"] for m in response.json().get("models", [])]
             if args.model not in models:
-                print(f"Warning: Model '{args.model}' not found. Available: {', '.join(models)}")
+                print(
+                    f"Warning: Model '{args.model}' not found. Available: {', '.join(models)}"
+                )
     except Exception:
         print(f"Error: Cannot connect to Ollama at {OLLAMA_URL}")
         print("Make sure Ollama is running: ollama serve")
@@ -394,7 +443,9 @@ Examples:
         toc = get_toc(pdf_path)
         if not toc:
             print(f"Error: No chapters detected in {pdf_path.name}")
-            print("Use --pages to select specific page ranges, or --toc to check structure.")
+            print(
+                "Use --pages to select specific page ranges, or --toc to check structure."
+            )
             return 1
 
         depth = args.toc_depth
@@ -432,17 +483,24 @@ Examples:
     # Process each PDF
     for pdf_path in pdf_files:
         try:
-            result = await process_pdf(pdf_path, args.model, args.chunk_size, args.parallel, pages_to_process)
+            result = await process_pdf(
+                pdf_path, args.model, args.chunk_size, args.parallel, pages_to_process
+            )
             if result is None:
                 continue
             output_path = save_output(result)
             print(f"\nOutput: {output_path}")
 
+            # Archive
+            ARCHIVE_DIR.mkdir(exist_ok=True)
+            shutil.move(str(pdf_path), ARCHIVE_DIR / pdf_path.name)
+            print(f"Archived: {ARCHIVE_DIR / pdf_path.name}")
+
         except Exception as e:
             print(f"\nError processing {pdf_path.name}: {e}")
             continue
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("Done!")
     return 0
 

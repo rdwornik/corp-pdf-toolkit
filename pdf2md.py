@@ -6,6 +6,7 @@ Supports TOC navigation, page/chapter selection, and PDF info display.
 """
 
 import argparse
+import shutil
 import sys
 from datetime import datetime
 from pathlib import Path
@@ -13,15 +14,25 @@ from pathlib import Path
 import pdfplumber
 
 from pdf_utils import (
-    INPUT_DIR, OUTPUT_DIR, get_pdf_files, get_pdf_info, get_toc,
-    filter_toc_by_depth, print_toc, print_info,
-    parse_page_ranges, parse_chapter_selection, format_page_ranges,
+    INPUT_DIR,
+    OUTPUT_DIR,
+    ARCHIVE_DIR,
+    get_pdf_files,
+    get_pdf_info,
+    get_toc,
+    filter_toc_by_depth,
+    print_toc,
+    print_info,
+    parse_page_ranges,
+    parse_chapter_selection,
+    format_page_ranges,
     extract_pdf,
 )
 
 
-def save_markdown(source: str, pages: list[str], total_pages: int,
-                  pages_selected: str | None = None) -> Path:
+def save_markdown(
+    source: str, pages: list[str], total_pages: int, pages_selected: str | None = None
+) -> Path:
     """Save extracted text as Markdown with frontmatter."""
     stem = Path(source).stem
     output_path = OUTPUT_DIR / f"{stem}.md"
@@ -62,10 +73,19 @@ Examples:
     )
     parser.add_argument("file", nargs="?", help="Specific PDF file to process")
     parser.add_argument("--pages", help="Page ranges (e.g., '1-50' or '1-20,50-60')")
-    parser.add_argument("--chapters", help="Chapter indices (e.g., '1-4' or '1-4,8-10')")
+    parser.add_argument(
+        "--chapters", help="Chapter indices (e.g., '1-4' or '1-4,8-10')"
+    )
     parser.add_argument("--toc", action="store_true", help="Show table of contents")
-    parser.add_argument("--toc-depth", type=int, default=2, help="TOC depth: 1=main, 2=+subsections (default: 2)")
-    parser.add_argument("--info", action="store_true", help="Show PDF info without processing")
+    parser.add_argument(
+        "--toc-depth",
+        type=int,
+        default=2,
+        help="TOC depth: 1=main, 2=+subsections (default: 2)",
+    )
+    parser.add_argument(
+        "--info", action="store_true", help="Show PDF info without processing"
+    )
     args = parser.parse_args()
 
     # Ensure directories exist
@@ -138,7 +158,9 @@ Examples:
         toc = get_toc(pdf_path)
         if not toc:
             print(f"Error: No chapters detected in {pdf_path.name}")
-            print("Use --pages to select specific page ranges, or --toc to check structure.")
+            print(
+                "Use --pages to select specific page ranges, or --toc to check structure."
+            )
             return 1
 
         depth = args.toc_depth
@@ -193,19 +215,30 @@ Examples:
 
             if page_indices is not None:
                 ranges = format_page_ranges(page_indices)
-                print(f"Extracting {pdf_path.name}: pages {ranges} ({selected_count} of {total_count})")
+                print(
+                    f"Extracting {pdf_path.name}: pages {ranges} ({selected_count} of {total_count})"
+                )
             else:
                 print(f"Extracting {pdf_path.name}: {total_count} pages")
 
             # Progress
             for i in range(len(pages)):
-                print(f"\r  Extracting page {i + 1}/{len(pages)}...", end="", flush=True)
+                print(
+                    f"\r  Extracting page {i + 1}/{len(pages)}...", end="", flush=True
+                )
             print(f"\r  Extracted {len(pages)} pages.          ")
 
             # Save
             pages_selected = format_page_ranges(page_indices) if page_indices else None
-            output_path = save_markdown(pdf_path.name, pages, total_count, pages_selected)
+            output_path = save_markdown(
+                pdf_path.name, pages, total_count, pages_selected
+            )
             print(f"  Output: {output_path}")
+
+            # Archive
+            ARCHIVE_DIR.mkdir(exist_ok=True)
+            shutil.move(str(pdf_path), ARCHIVE_DIR / pdf_path.name)
+            print(f"  Archived: {ARCHIVE_DIR / pdf_path.name}")
 
         except Exception as e:
             print(f"\nError processing {pdf_path.name}: {e}")

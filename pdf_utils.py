@@ -12,6 +12,7 @@ import pdfplumber
 # Try to import pypdf for TOC support
 try:
     from pypdf import PdfReader
+
     HAS_PYPDF = True
 except ImportError:
     HAS_PYPDF = False
@@ -20,11 +21,13 @@ except ImportError:
 SCRIPT_DIR = Path(__file__).parent
 INPUT_DIR = SCRIPT_DIR / "input"
 OUTPUT_DIR = SCRIPT_DIR / "output"
+ARCHIVE_DIR = INPUT_DIR / "archive"
 
 
 # ---------------------------------------------------------------------------
 # PDF info
 # ---------------------------------------------------------------------------
+
 
 def count_outline_entries(outlines, count=0) -> int:
     """Recursively count outline entries."""
@@ -73,14 +76,14 @@ def print_info(info: dict):
     print(f"Pages: {info['pages']}")
     print(f"Size: {info['size_mb']} MB")
     print(f"Has TOC: {'Yes' if info['has_toc'] else 'No'}", end="")
-    if info['has_toc']:
+    if info["has_toc"]:
         print(f" ({info['toc_entries']} entries)")
     else:
         print()
 
-    if info['metadata']:
+    if info["metadata"]:
         print("\nMetadata:")
-        for key, value in info['metadata'].items():
+        for key, value in info["metadata"].items():
             if value:
                 print(f"  {key}: {value}")
 
@@ -88,6 +91,7 @@ def print_info(info: dict):
 # ---------------------------------------------------------------------------
 # TOC extraction
 # ---------------------------------------------------------------------------
+
 
 def get_toc(file_path: Path, total_pages: int | None = None) -> list[dict] | None:
     """Extract table of contents from PDF. Priority: 1) PDF outlines, 2) TOC page parsing."""
@@ -121,13 +125,17 @@ def _get_toc_from_outlines(file_path: Path, total_pages: int) -> list[dict] | No
             return None
 
         toc = []
-        _extract_outline_entries(reader, outlines, toc, level=0, total_pages=total_pages)
+        _extract_outline_entries(
+            reader, outlines, toc, level=0, total_pages=total_pages
+        )
         return toc if toc else None
     except Exception:
         return None
 
 
-def _extract_outline_entries(reader: "PdfReader", outlines, toc: list, level: int, total_pages: int):
+def _extract_outline_entries(
+    reader: "PdfReader", outlines, toc: list, level: int, total_pages: int
+):
     """Recursively extract outline entries with page numbers."""
     for item in outlines:
         if isinstance(item, list):
@@ -137,7 +145,7 @@ def _extract_outline_entries(reader: "PdfReader", outlines, toc: list, level: in
                 title = item.title if hasattr(item, "title") else str(item)
 
                 # Skip garbage titles (too long, empty, or looks like content)
-                if not title or len(title) > 80 or title.count(' ') > 15:
+                if not title or len(title) > 80 or title.count(" ") > 15:
                     continue
 
                 # Get page number
@@ -150,12 +158,14 @@ def _extract_outline_entries(reader: "PdfReader", outlines, toc: list, level: in
                     except Exception:
                         pass
 
-                toc.append({
-                    "title": title.strip(),
-                    "page": page_num,
-                    "level": level,
-                    "numbering": _extract_numbering(title),
-                })
+                toc.append(
+                    {
+                        "title": title.strip(),
+                        "page": page_num,
+                        "level": level,
+                        "numbering": _extract_numbering(title),
+                    }
+                )
             except Exception:
                 continue
 
@@ -165,19 +175,19 @@ def _get_toc_from_toc_page(file_path: Path, total_pages: int) -> list[dict] | No
     toc = []
 
     toc_page_markers = [
-        r'table\s+of\s+contents',
-        r'contents',
-        r'spis\s+treści',
-        r'inhalt',
-        r'índice',
+        r"table\s+of\s+contents",
+        r"contents",
+        r"spis\s+treści",
+        r"inhalt",
+        r"índice",
     ]
-    toc_marker_pattern = '|'.join(toc_page_markers)
+    toc_marker_pattern = "|".join(toc_page_markers)
 
     toc_entry_patterns = [
-        r'^(\d+(?:\.\d+)*\.?)\s+(.+?)\s*\.{2,}\s*(\d+)\s*$',
-        r'^(.+?)\s*\.{2,}\s*(\d+)\s*$',
-        r'^(\d+(?:\.\d+)*\.?)\s+(.+?)\s{3,}(\d+)\s*$',
-        r'^(.+?)\s{3,}(\d+)\s*$',
+        r"^(\d+(?:\.\d+)*\.?)\s+(.+?)\s*\.{2,}\s*(\d+)\s*$",
+        r"^(.+?)\s*\.{2,}\s*(\d+)\s*$",
+        r"^(\d+(?:\.\d+)*\.?)\s+(.+?)\s{3,}(\d+)\s*$",
+        r"^(.+?)\s{3,}(\d+)\s*$",
     ]
 
     with pdfplumber.open(file_path) as pdf:
@@ -187,7 +197,7 @@ def _get_toc_from_toc_page(file_path: Path, total_pages: int) -> list[dict] | No
         for page_idx in range(pages_to_check):
             page = pdf.pages[page_idx]
             text = page.extract_text() or ""
-            lines = text.split('\n')
+            lines = text.split("\n")
 
             page_text_lower = text.lower()
             if re.search(toc_marker_pattern, page_text_lower):
@@ -226,24 +236,30 @@ def _get_toc_from_toc_page(file_path: Path, total_pages: int) -> list[dict] | No
 
                         level = 0
                         if numbering:
-                            numbering = numbering.strip().rstrip('.')
-                            level = numbering.count('.')
+                            numbering = numbering.strip().rstrip(".")
+                            level = numbering.count(".")
 
-                        if any(e["title"] == title and e["page"] == page_num for e in toc):
+                        if any(
+                            e["title"] == title and e["page"] == page_num for e in toc
+                        ):
                             continue
 
-                        toc.append({
-                            "title": title,
-                            "page": page_num,
-                            "level": level,
-                            "numbering": numbering,
-                        })
+                        toc.append(
+                            {
+                                "title": title,
+                                "page": page_num,
+                                "level": level,
+                                "numbering": numbering,
+                            }
+                        )
                         break
 
             if toc_page_found and len(toc) > 0:
-                entries_on_page = sum(1 for line in lines if any(
-                    re.match(p, line.strip()) for p in toc_entry_patterns
-                ))
+                entries_on_page = sum(
+                    1
+                    for line in lines
+                    if any(re.match(p, line.strip()) for p in toc_entry_patterns)
+                )
                 if entries_on_page == 0 and page_idx > 0:
                     break
 
@@ -252,9 +268,9 @@ def _get_toc_from_toc_page(file_path: Path, total_pages: int) -> list[dict] | No
 
 def _extract_numbering(title: str) -> str | None:
     """Extract chapter numbering from title (e.g., '1.', '1.1', '2.3.1')."""
-    match = re.match(r'^(\d+(?:\.\d+)*\.?)\s', title)
+    match = re.match(r"^(\d+(?:\.\d+)*\.?)\s", title)
     if match:
-        return match.group(1).rstrip('.')
+        return match.group(1).rstrip(".")
     return None
 
 
@@ -262,7 +278,7 @@ def _detect_hierarchy_levels(toc: list[dict]):
     """Detect hierarchy levels from numbering patterns."""
     for entry in toc:
         if entry.get("numbering"):
-            entry["level"] = entry["numbering"].count('.')
+            entry["level"] = entry["numbering"].count(".")
 
 
 def _validate_toc(toc: list[dict], total_pages: int) -> bool:
@@ -277,7 +293,7 @@ def _validate_toc(toc: list[dict], total_pages: int) -> bool:
 
         if len(title) > 80:
             continue
-        if title.count(' ') > 15:
+        if title.count(" ") > 15:
             continue
 
         if page is not None and (page < 1 or page > total_pages):
@@ -296,7 +312,9 @@ def _calculate_page_ranges(toc: list[dict], total_pages: int):
     for idx, (i, entry) in enumerate(toc_with_pages):
         if idx + 1 < len(toc_with_pages):
             next_page = toc_with_pages[idx + 1][1]["page"]
-            entry["end_page"] = next_page - 1 if next_page > entry["page"] else entry["page"]
+            entry["end_page"] = (
+                next_page - 1 if next_page > entry["page"] else entry["page"]
+            )
         else:
             entry["end_page"] = total_pages
 
@@ -317,7 +335,9 @@ def filter_toc_by_depth(toc: list[dict], depth: int = 2) -> list[dict]:
     return [e for e in toc if e.get("level", 0) < depth]
 
 
-def print_toc(toc: list[dict], show_usage: bool = True, depth: int = 2, filename: str = ""):
+def print_toc(
+    toc: list[dict], show_usage: bool = True, depth: int = 2, filename: str = ""
+):
     """Print table of contents with natural sequential indexing."""
     if filename:
         print(f"\nTable of Contents: {filename}")
@@ -366,6 +386,7 @@ def print_toc(toc: list[dict], show_usage: bool = True, depth: int = 2, filename
 # Selection parsing
 # ---------------------------------------------------------------------------
 
+
 def parse_page_ranges(pages_str: str, total_pages: int) -> list[int]:
     """Parse page ranges like '1-50' or '1-20,45-80,100-120' into list of page indices (0-based)."""
     page_indices = []
@@ -385,7 +406,9 @@ def parse_page_ranges(pages_str: str, total_pages: int) -> list[int]:
     return sorted(set(page_indices))
 
 
-def parse_chapter_selection(chapters_str: str, toc: list[dict], depth: int = 2) -> list[int]:
+def parse_chapter_selection(
+    chapters_str: str, toc: list[dict], depth: int = 2
+) -> list[int]:
     """Parse chapter selection like '1,3,5' or '2-4' into page indices (0-based).
 
     Uses natural indices from filtered TOC (same as displayed by --toc).
@@ -441,7 +464,10 @@ def format_page_ranges(page_indices: list[int]) -> str:
 # PDF text extraction
 # ---------------------------------------------------------------------------
 
-def extract_pdf(file_path: Path, page_indices: list[int] | None = None) -> tuple[list[str], int, int]:
+
+def extract_pdf(
+    file_path: Path, page_indices: list[int] | None = None
+) -> tuple[list[str], int, int]:
     """Extract text from PDF, returns (pages_text, selected_count, total_count)."""
     pages = []
     with pdfplumber.open(file_path) as pdf:
@@ -463,6 +489,7 @@ def extract_pdf(file_path: Path, page_indices: list[int] | None = None) -> tuple
 # ---------------------------------------------------------------------------
 # File resolution
 # ---------------------------------------------------------------------------
+
 
 def get_pdf_files(specific_file: str | None) -> list[Path]:
     """Get list of PDFs to process."""
