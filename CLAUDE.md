@@ -104,6 +104,13 @@ This repo uses: **none** — all processing is local (Ollama for LLM, pdfplumber
 - **No error recovery** -- if Ollama fails mid-processing, partial results may be lost
 - **Flat layout** -- no package structure, scripts import each other via relative imports at root level
 
+## Integration points
+
+corp-pdf-toolkit is fully standalone. No other repos depend on it or invoke it.
+
+- All processing happens locally via Ollama — no data leaves the machine
+- PDF extraction output can be manually fed to other tools but there is no automated integration
+
 ## Related repos
 
 - corp-by-os -- orchestrator

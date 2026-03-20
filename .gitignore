@@ -27,7 +27,8 @@ nul
 .env
 
 # Claude Code
-.claude/
+.claude/settings.local.json
 
 # OS
+.ruff_cache/
 .DS_Store
