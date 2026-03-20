@@ -23,6 +23,9 @@ output/*
 archive/
 nul
 
+# Environment
+.env
+
 # Claude Code
 .claude/
 

@@ -88,6 +88,14 @@ No tests exist yet. All three modules (`pdf_utils.py`, `pdf2md.py`, `anonymize.p
 
 Ollama must be running locally (`ollama serve`) for anonymize.py. Default model: `qwen2.5:7b`.
 
+## API Keys
+
+Keys loaded globally from `Documents/.secrets/.env` via PowerShell profile.
+Do NOT add API keys to local `.env`.
+Check: `keys list` | Update: `keys set KEY value` | Reload: `keys reload`
+
+This repo uses: **none** — all processing is local (Ollama for LLM, pdfplumber/pypdf for PDF parsing).
+
 ## Known issues
 
 - **No test coverage** -- all modules untested
