@@ -11,7 +11,16 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from dotenv import load_dotenv
 import pdfplumber
+
+# Global API keys (Documents/.secrets/.env)
+_global_env = Path.home() / "Documents" / ".secrets" / ".env"
+if _global_env.exists():
+    load_dotenv(_global_env, override=False)
+
+# Local .env (project-specific vars only)
+load_dotenv(override=False)
 
 from pdf_utils import (
     INPUT_DIR,
