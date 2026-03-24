@@ -2,16 +2,33 @@
 __pycache__/
 *.py[cod]
 *.so
-.venv/
-venv/
 *.egg-info/
 dist/
 build/
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
 
 # IDE
-.idea/
 .vscode/
+.idea/
 *.swp
+
+# OS
+desktop.ini
+Thumbs.db
+.DS_Store
+
+# Environment
+.env
+
+# Claude
+.claude/
 
 # Project - ignore PDFs and outputs, keep structure
 input/*
@@ -23,12 +40,5 @@ output/*
 archive/
 nul
 
-# Environment
-.env
-
-# Claude Code
-.claude/settings.local.json
-
-# OS
-.ruff_cache/
-.DS_Store
+# Data (repo-specific)
+*.db
